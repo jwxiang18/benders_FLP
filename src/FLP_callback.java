@@ -27,11 +27,11 @@ public class FLP_callback extends GRBCallback {
     }
 
     protected void callback(){
-        try {
+        try{
             if(where == GRB.Callback.MIPSOL){
                 if(iter >= 1){
                     for (int i = 0; i < nwarehouse; i++) {
-                        csupply[i].set(GRB.DoubleAttr.RHS , getSolution(vmbuild[i]) * supply[i]);
+                        csupply[i].set(GRB.DoubleAttr.RHS , getSolution(vmbuild[i]) * supply[i] );
                     }
                 }
                 sub.optimize();
@@ -41,35 +41,38 @@ public class FLP_callback extends GRBCallback {
                     System.out.println("Adding feasibility cut");
                     System.out.println();
 
-                    GRBLinExpr exp = new GRBLinExpr();
+                    GRBLinExpr expr = new GRBLinExpr();
                     for (int i = 0; i < nwarehouse; i++) {
-                        exp.addTerm(csupply[i].get(GRB.DoubleAttr.FarkasDual)*supply[i] , vmbuild[i]);
+                        expr.addTerm(csupply[i].get(GRB.DoubleAttr.FarkasDual) * supply[i]  , vmbuild[i]);
                     }
                     double sum = 0;
                     for (int i = 0; i < nstore; i++) {
-                        sum += cdemand[i].get(GRB.DoubleAttr.FarkasDual)*demand[i];
+                        sum += cdemand[i].get(GRB.DoubleAttr.FarkasDual) * demand[i];
                     }
-                    addLazy(exp , GRB.LESS_EQUAL , -1*sum);
+                    addLazy(expr , GRB.GREATER_EQUAL , -1*sum);
                     iter++;
-                } else if (sub.get(GRB.IntAttr.Status) == GRB.Status.OPTIMAL){
-                    System.out.println("Iteration : " + iter);
-                    System.out.println("Adding optimality cut");
-                    System.out.println();
+                }else if(sub.get(GRB.IntAttr.Status) == GRB.Status.OPTIMAL){
+                    if(sub.get(GRB.DoubleAttr.ObjVal) > getSolution(maxShipCost) + 1e-6){
+                        System.out.println("Iteration : " + iter);
+                        System.out.println("Adding optimality cut");
+                        System.out.println();
 
-                    GRBLinExpr exp = new GRBLinExpr();
-                    for (int i = 0; i < nwarehouse; i++) {
-                        exp.addTerm(-1*csupply[i].get(GRB.DoubleAttr.Pi)*supply[i] , vmbuild[i]);
+                        GRBLinExpr expr = new GRBLinExpr();
+                        expr.addTerm(1,maxShipCost);
+                        for (int i = 0; i < nwarehouse; i++) {
+                            expr.addTerm(-1*csupply[i].get(GRB.DoubleAttr.Pi)*supply[i] , vmbuild[i]);
+                        }
+                        double sum = 0;
+                        for (int i = 0; i < nstore; i++) {
+                            sum += cdemand[i].get(GRB.DoubleAttr.Pi) * demand[i];
+                        }
+                        addLazy(expr , GRB.GREATER_EQUAL , sum);
+                        iter++;
                     }
-                    exp.addTerm(1, maxShipCost);
-                    double sum = 0;
-                    for (int i = 0; i < nstore; i++) {
-                        sum += cdemand[i].get(GRB.DoubleAttr.Pi)*demand[i];
-                    }
-                    addLazy(exp , GRB.GREATER_EQUAL , sum );
-                    iter++;
                 }
             }
-        } catch (Exception e) {
+        } catch (GRBException e) {
+            System.out.println("Error code: " + e.getErrorCode() + ". " + e.getMessage());
             throw new RuntimeException(e);
         }
     }

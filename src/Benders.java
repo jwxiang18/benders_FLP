@@ -1,8 +1,6 @@
 
 import gurobi.*;
 
-import java.util.List;
-
 
 public class Benders {
     int nwareHouse , nstore;
@@ -49,7 +47,7 @@ public class Benders {
         for (int i = 0; i < nstore; i++) {
             for (int j = 0; j < nwareHouse; j++) {
                 if(vship[j][i].get(GRB.DoubleAttr.X) > 1e-6)
-                    System.out.println("         *** Warehouse " + j + " ship to store " + i + " : " + vship[j][i].get(GRB.DoubleAttr.X));
+                    System.out.println("         *** x " + j + "_" + i + " : " + vship[j][i].get(GRB.DoubleAttr.X));
             }
         }
         System.out.println("         *** end ***");
